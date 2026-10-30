@@ -16,7 +16,7 @@ jobs:
       - name: Select Xcode
         run: |
           ls /Applications | grep Xcode
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
           xcodebuild -version
 
       # 本仓库由 XcodeGen 管理，需先用 project.yml 重新生成 .xcodeproj
