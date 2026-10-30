@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14         # 自带 Xcode 15.x，支持 iOS 17.0 SDK
+    runs-on: macos-15         # 自带 Xcode 16.x，兼容 XcodeGen 新工程格式
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,7 +16,7 @@ jobs:
       - name: Select Xcode
         run: |
           ls /Applications | grep Xcode
-          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
           xcodebuild -version
 
       # 本仓库由 XcodeGen 管理，需先用 project.yml 重新生成 .xcodeproj
