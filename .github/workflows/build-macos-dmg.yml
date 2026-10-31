@@ -1,0 +1,65 @@
+name: Build macOS DMG
+
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: "CPU 架构（Intel Mac 选 x86_64）"
+        type: choice
+        options: [x86_64, universal, arm64]
+        default: x86_64
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app | grep -iv beta | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
+
+      - name: Install XcodeGen and generate project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Resolve SPM dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project tvbox.xcodeproj \
+            -scheme tvbox-macOS
+
+      - name: Build macOS App
+        run: |
+          xcodebuild -project tvbox.xcodeproj \
+            -scheme tvbox-macOS \
+            -configuration Release \
+            SYMROOT="$(pwd)/build" \
+            ARCHS='${{ github.event.inputs.arch || 'x86_64' }}' \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            clean build
+
+      - name: Package DMG
+        run: |
+          APP="build/Release/TVBox.app"
+          test -d "$APP" || { echo "App not found"; exit 1; }
+          lipo -info "$APP/Contents/MacOS/TVBox"
+          STAGE="build/dmg_stage"
+          mkdir -p "$STAGE"
+          cp -R "$APP" "$STAGE/"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "TVBox" -srcfolder "$STAGE" -ov -format UDZO "TVBox-macOS-${{ github.event.inputs.arch || 'x86_64' }}.dmg"
+          ls -lh *.dmg
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TVBox-macOS-dmg
+          path: *.dmg
+          if-no-files-found: error
